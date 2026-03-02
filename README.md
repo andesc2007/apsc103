@@ -1,3 +1,6 @@
+When first starting to work on the files, run the following in the terminal:
+pip install -r requirements.txt
+
 The first four things that should be done when booting up VSCode:
 
 1. PULL FROM THE GIT REPOSITORY. ALWAYS
