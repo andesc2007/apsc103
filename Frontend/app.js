@@ -1,41 +1,38 @@
 function App() {
   const [product, setProduct] = React.useState("");
-  const [result, setResult] = React.useState(null);
+  const [result, setResult] = React.useState("");
 
-  async function calculateCarbon() {
-    const response = await fetch("http://127.0.0.1:5000/calculate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ product })
-    });
-
-    const data = await response.json();
-    setResult(data);
+  function calculateCarbon() {
+    const carbonValue = product.length;
+    setResult(`Carbon footprint value: ${carbonValue}`);
   }
 
   return (
-    <div className="max-w-md mx-auto mt-20 bg-white p-6 rounded-xl shadow-lg">
-      <h1 className="text-2xl font-bold mb-4">Carbon Tracker</h1>
+    <div className="max-w-xl mx-auto mt-16 bg-white shadow-xl rounded-2xl p-8">
+      <h1 className="text-3xl font-bold mb-4 text-center">Carbon Tracker</h1>
+
+      <p className="text-gray-600 mb-4 text-center">
+        Enter a product name and calculate a simple test value.
+      </p>
 
       <input
-        className="border p-2 w-full mb-4"
+        type="text"
         value={product}
         onChange={(e) => setProduct(e.target.value)}
-        placeholder="Enter product"
+        placeholder="Enter product name"
+        className="w-full border border-gray-300 rounded-lg px-4 py-3 mb-4"
       />
 
       <button
-        className="bg-green-600 text-white px-4 py-2 rounded"
         onClick={calculateCarbon}
+        className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition"
       >
         Calculate
       </button>
 
       {result && (
-        <div className="mt-4">
-          Carbon footprint: {result.carbon}
+        <div className="mt-6 p-4 bg-green-50 border rounded-lg">
+          {result}
         </div>
       )}
     </div>
