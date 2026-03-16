@@ -57,4 +57,22 @@ input:focus {
   background-color: #fee2e2;
   color: #7f1d1d;
 }
+.impact-bar {
+  width: 100%;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  margin-top: 10px;
+}
 
+.impact-fill {
+  height: 100%;
+  width: 35%;
+  background: #16a34a;
+  border-radius: 10px;
+}
+input:focus {
+  outline: none;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22,163,74,0.2);
+}

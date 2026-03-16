@@ -3,7 +3,8 @@ function App() {
   const [quantity, setQuantity] = React.useState("");
   const [result, setResult] = React.useState(null);
   const [suggestions, setSuggestions] = React.useState([]);
-
+  const [totalCarbon, setTotalCarbon] = React.useState(0);
+  const [purchaseCount, setPurchaseCount] = React.useState(0);
   const searchRef = React.useRef(null);
 
   async function calculateCarbon() {
@@ -47,6 +48,15 @@ function App() {
         impact = "Moderate Impact";
         impactColor = "bg-yellow-100 text-yellow-700";
       }
+      const impactLevel =
+  totalCarbon > 40
+    ? "High Impact"
+    : totalCarbon > 20
+    ? "Moderate Impact"
+    : "Low Impact";
+    <p>
+  <strong>Impact Level:</strong> {impactLevel}
+</p>
 
       setResult({
         product: data.product,
@@ -65,6 +75,14 @@ function App() {
       });
     }
   }
+  function calculateCarbon() {
+  const carbonValue = product.length;
+
+  setResult(carbonValue);
+
+  setTotalCarbon(totalCarbon + carbonValue);
+  setPurchaseCount(purchaseCount + 1);
+}
 
   function handleQuantityChange(e) {
     const value = e.target.value;
@@ -120,6 +138,17 @@ function App() {
         <p className="text-gray-600 mb-6 text-center">
           Log a purchase to estimate its carbon footprint and explore lower-impact choices.
         </p>
+        <div className="mb-6 p-4 bg-blue-50 border rounded-lg">
+  <h2 className="text-lg font-semibold mb-2">Your Carbon Score</h2>
+
+  <p>
+    <strong>Total CO₂:</strong> {totalCarbon.toFixed(1)} kg
+  </p>
+
+  <p>
+    <strong>Purchases Logged:</strong> {purchaseCount}
+  </p>
+</div>
 
         <div className="grid md:grid-cols-2 gap-4 mb-4">
           <div className="relative" ref={searchRef}>
