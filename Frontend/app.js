@@ -14,6 +14,99 @@ function App() {
       ? "Moderate Impact"
       : "Low Impact";
 
+  function getSuggestion(productName) {
+    const p = productName.toLowerCase();
+
+    if (p.includes("beef") || p.includes("burger") || p.includes("steak")) {
+      return "Consider replacing beef with chicken, lentils, or tofu to significantly reduce emissions.";
+    }
+
+    if (
+      p.includes("milk") ||
+      p.includes("cheese") ||
+      p.includes("butter") ||
+      p.includes("cream")
+    ) {
+      return "Dairy products often have a higher carbon footprint. Consider oat, soy, or almond-based alternatives.";
+    }
+
+    if (p.includes("rice")) {
+      return "Rice production can create methane emissions. Consider grains such as quinoa or barley.";
+    }
+
+    if (
+      p.includes("cake") ||
+      p.includes("dessert") ||
+      p.includes("cookie") ||
+      p.includes("biscuit")
+    ) {
+      return "Baked goods can have hidden emissions from eggs, dairy, and packaging. Consider lower-impact plant-based recipes.";
+    }
+
+    if (p.includes("chicken")) {
+      return "Chicken has a lower footprint than beef, but plant-based proteins can reduce emissions even more.";
+    }
+
+    return "Buying seasonal, local, or minimally processed products can reduce carbon emissions.";
+  }
+
+  function getAlternative(productName, carbonValue) {
+    const p = productName.toLowerCase();
+
+    if (p.includes("beef") || p.includes("burger") || p.includes("steak")) {
+      const altCarbon = Math.max(carbonValue * 0.2, 0.1);
+      return {
+        name: "Tofu or lentils",
+        carbon: altCarbon,
+        savings: carbonValue - altCarbon
+      };
+    }
+
+    if (
+      p.includes("milk") ||
+      p.includes("cheese") ||
+      p.includes("butter") ||
+      p.includes("cream")
+    ) {
+      const altCarbon = Math.max(carbonValue * 0.45, 0.1);
+      return {
+        name: "Oat milk or soy-based alternative",
+        carbon: altCarbon,
+        savings: carbonValue - altCarbon
+      };
+    }
+
+    if (p.includes("rice")) {
+      const altCarbon = Math.max(carbonValue * 0.6, 0.1);
+      return {
+        name: "Quinoa or barley",
+        carbon: altCarbon,
+        savings: carbonValue - altCarbon
+      };
+    }
+
+    if (
+      p.includes("cake") ||
+      p.includes("dessert") ||
+      p.includes("cookie") ||
+      p.includes("biscuit")
+    ) {
+      const altCarbon = Math.max(carbonValue * 0.7, 0.1);
+      return {
+        name: "Plant-based sponge cake",
+        carbon: altCarbon,
+        savings: carbonValue - altCarbon
+      };
+    }
+
+    const altCarbon = Math.max(carbonValue * 0.75, 0.1);
+    return {
+      name: "A plant-based or minimally processed alternative",
+      carbon: altCarbon,
+      savings: carbonValue - altCarbon
+    };
+  }
+
   async function calculateCarbon() {
     const amount = parseFloat(quantity);
 
@@ -59,6 +152,9 @@ function App() {
         barColor = "bg-yellow-500";
       }
 
+      const suggestionText = getSuggestion(data.product);
+      const alternativeInfo = getAlternative(data.product, data.total_carbon);
+
       setResult({
         product: data.product,
         quantity: data.amount,
@@ -66,10 +162,10 @@ function App() {
         impact,
         impactColor,
         barColor,
-        suggestion:
-          "Consider buying in bulk or choosing products with less packaging.",
-        alternative:
-          "A lower-carbon alternative may be available in the same category."
+        suggestion: suggestionText,
+        alternative: alternativeInfo.name,
+        alternativeCarbon: alternativeInfo.carbon,
+        savings: alternativeInfo.savings
       });
 
       setTotalCarbon((prev) => prev + data.total_carbon);
@@ -137,7 +233,7 @@ function App() {
           Log a purchase to estimate its carbon footprint and explore lower-impact choices.
         </p>
 
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg card">
+        <div className="mb-6 p-4 bg-blue-50 border rounded-lg card">
           <h2 className="text-lg font-semibold mb-2">Your Carbon Score</h2>
 
           <p>
@@ -209,7 +305,7 @@ function App() {
               <h2 className="text-xl font-semibold mb-3">🌍 Carbon Footprint</h2>
               <p><span className="font-medium">Product:</span> {result.product}</p>
               <p><span className="font-medium">Quantity (kg):</span> {result.quantity}</p>
-              <p><span className="font-medium">Carbon Footprint:</span> {result.carbon} kg CO₂e</p>
+              <p><span className="font-medium">Carbon Footprint:</span> {result.carbon.toFixed(2)} kg CO₂e</p>
 
               <div className="impact-bar mt-3">
                 <div
@@ -232,7 +328,16 @@ function App() {
 
             <div className="p-5 bg-gray-50 border border-gray-200 rounded-xl card">
               <h3 className="text-lg font-semibold mb-2">♻ Lower-Carbon Alternative</h3>
-              <p className="text-gray-700">{result.alternative}</p>
+              <p className="text-gray-700">
+                <strong>Alternative:</strong> {result.alternative}
+              </p>
+              <p className="text-gray-700 mt-2">
+                <strong>Estimated Alternative Footprint:</strong> {result.alternativeCarbon.toFixed(2)} kg CO₂e
+              </p>
+              <p className="savings-text">
+                Estimated Savings: {result.savings.toFixed(2)} kg CO₂e
+              </p>
+              <span className="alt-badge">Lower-impact choice</span>
             </div>
           </div>
         )}
