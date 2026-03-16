@@ -1,3 +1,8 @@
+import Dashboard from "./pages/Dashboard.js";
+import Catalog from "./pages/catalog.js";
+import PurchaseLog from "./pages/purchaselog.js";
+
+
 function App() {
   const [product, setProduct] = React.useState("");
   const [quantity, setQuantity] = React.useState("");
