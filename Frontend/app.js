@@ -1,40 +1,92 @@
 function App() {
   const [product, setProduct] = React.useState("");
-  const [quantity, setQuantity] = React.useState(1);
+  const [quantity, setQuantity] = React.useState("");
   const [result, setResult] = React.useState(null);
   const [suggestions, setSuggestions] = React.useState([]);
 
-  function calculateCarbon() {
-    if (!product.trim() || quantity <= 0) {
+  const searchRef = React.useRef(null);
+
+  async function calculateCarbon() {
+    const amount = parseFloat(quantity);
+
+    if (!product.trim() || !quantity.trim() || isNaN(amount) || amount <= 0) {
       setResult({
         error: "Please enter a valid product name and quantity."
       });
       return;
     }
 
-    const carbonValue = product.length * quantity;
+    try {
+      const response = await fetch("http://127.0.0.1:5000/calculate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          product: product,
+          amount: amount
+        })
+      });
 
-    let impact = "Low Impact";
-    let impactColor = "bg-green-100 text-green-700";
+      const data = await response.json();
 
-    if (carbonValue > 20) {
-      impact = "High Impact";
-      impactColor = "bg-red-100 text-red-700";
-    } else if (carbonValue > 10) {
-      impact = "Moderate Impact";
-      impactColor = "bg-yellow-100 text-yellow-700";
+      if (!response.ok) {
+        setResult({
+          error: data.error || "Something went wrong."
+        });
+        return;
+      }
+
+      let impact = "Low Impact";
+      let impactColor = "bg-green-100 text-green-700";
+
+      if (data.total_carbon > 20) {
+        impact = "High Impact";
+        impactColor = "bg-red-100 text-red-700";
+      } else if (data.total_carbon > 10) {
+        impact = "Moderate Impact";
+        impactColor = "bg-yellow-100 text-yellow-700";
+      }
+
+      setResult({
+        product: data.product,
+        quantity: data.amount,
+        carbon: data.total_carbon,
+        impact,
+        impactColor,
+        suggestion: "Consider buying in bulk or choosing products with less packaging.",
+        alternative: "A lower-carbon alternative may be available in the same category."
+      });
+
+      setSuggestions([]);
+    } catch (error) {
+      setResult({
+        error: "Could not connect to backend."
+      });
+    }
+  }
+
+  function handleQuantityChange(e) {
+    const value = e.target.value;
+
+    if (/^\d*\.?\d*$/.test(value)) {
+      setQuantity(value);
+    }
+  }
+
+  React.useEffect(() => {
+    function handleClickOutside(event) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSuggestions([]);
+      }
     }
 
-    setResult({
-      product,
-      quantity,
-      carbon: carbonValue,
-      impact,
-      impactColor,
-      suggestion: "Consider buying in bulk or choosing products with less packaging.",
-      alternative: "A lower-carbon alternative may be available in the same category."
-    });
-  }
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   async function handleInputChange(e) {
     const value = e.target.value;
@@ -70,7 +122,7 @@ function App() {
         </p>
 
         <div className="grid md:grid-cols-2 gap-4 mb-4">
-          <div className="relative">
+          <div className="relative" ref={searchRef}>
             <input
               type="text"
               value={product}
@@ -98,11 +150,10 @@ function App() {
           </div>
 
           <input
-            type="number"
-            min="1"
+            type="text"
             value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
-            placeholder="Quantity"
+            onChange={handleQuantityChange}
+            placeholder="Amount (kg)"
             className="w-full border border-gray-300 rounded-lg px-4 py-3"
           />
         </div>
@@ -125,7 +176,7 @@ function App() {
             <div className="p-5 bg-green-50 border border-green-200 rounded-xl">
               <h2 className="text-xl font-semibold mb-3">Estimated Result</h2>
               <p><span className="font-medium">Product:</span> {result.product}</p>
-              <p><span className="font-medium">Quantity:</span> {result.quantity}</p>
+              <p><span className="font-medium">Quantity (kg):</span> {result.quantity}</p>
               <p><span className="font-medium">Carbon Footprint:</span> {result.carbon} kg CO₂e</p>
 
               <div className="mt-3">
