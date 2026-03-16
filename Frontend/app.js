@@ -2,6 +2,7 @@ function App() {
   const [product, setProduct] = React.useState("");
   const [quantity, setQuantity] = React.useState(1);
   const [result, setResult] = React.useState(null);
+  const [suggestions, setSuggestions] = React.useState([]);
 
   function calculateCarbon() {
     if (!product.trim() || quantity <= 0) {
@@ -35,6 +36,28 @@ function App() {
     });
   }
 
+    async function handleInputChange(e) {
+    const value = e.target.value;
+    setProduct(value);
+
+    if (value.trim() === "") {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:5000/search?q=${encodeURIComponent(value)}`
+      );
+
+      const data = await response.json();
+      setSuggestions(data);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setSuggestions([]);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4">
       <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-8">
@@ -47,13 +70,32 @@ function App() {
         </p>
 
         <div className="grid md:grid-cols-2 gap-4 mb-4">
-          <input
-            type="text"
-            value={product}
-            onChange={(e) => setProduct(e.target.value)}
-            placeholder="Enter product name"
-            className="w-full border border-gray-300 rounded-lg px-4 py-3"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={product}
+              onChange={handleInputChange}
+              placeholder="Enter product name"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3"
+            />
+
+            {suggestions.length > 0 && (
+              <ul className="absolute z-10 w-full border border-gray-300 rounded-lg bg-white max-h-48 overflow-y-auto shadow-md mt-1">
+                {suggestions.map((item, index) => (
+                  <li
+                    key={index}
+                    onClick={() => {
+                      setProduct(item);
+                      setSuggestions([]);
+                    }}
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           <input
             type="number"
