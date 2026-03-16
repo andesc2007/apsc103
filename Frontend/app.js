@@ -36,7 +36,7 @@ function App() {
     });
   }
 
-    async function handleInputChange(e) {
+  async function handleInputChange(e) {
     const value = e.target.value;
     setProduct(value);
 
