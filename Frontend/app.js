@@ -7,6 +7,13 @@ function App() {
   const [purchaseCount, setPurchaseCount] = React.useState(0);
   const searchRef = React.useRef(null);
 
+  const impactLevel =
+    totalCarbon > 40
+      ? "High Impact"
+      : totalCarbon > 20
+      ? "Moderate Impact"
+      : "Low Impact";
+
   async function calculateCarbon() {
     const amount = parseFloat(quantity);
 
@@ -40,23 +47,17 @@ function App() {
 
       let impact = "Low Impact";
       let impactColor = "bg-green-100 text-green-700";
+      let barColor = "bg-green-500";
 
       if (data.total_carbon > 20) {
         impact = "High Impact";
         impactColor = "bg-red-100 text-red-700";
+        barColor = "bg-red-500";
       } else if (data.total_carbon > 10) {
         impact = "Moderate Impact";
         impactColor = "bg-yellow-100 text-yellow-700";
+        barColor = "bg-yellow-500";
       }
-      const impactLevel =
-  totalCarbon > 40
-    ? "High Impact"
-    : totalCarbon > 20
-    ? "Moderate Impact"
-    : "Low Impact";
-    <p>
-  <strong>Impact Level:</strong> {impactLevel}
-</p>
 
       setResult({
         product: data.product,
@@ -64,10 +65,15 @@ function App() {
         carbon: data.total_carbon,
         impact,
         impactColor,
-        suggestion: "Consider buying in bulk or choosing products with less packaging.",
-        alternative: "A lower-carbon alternative may be available in the same category."
+        barColor,
+        suggestion:
+          "Consider buying in bulk or choosing products with less packaging.",
+        alternative:
+          "A lower-carbon alternative may be available in the same category."
       });
 
+      setTotalCarbon((prev) => prev + data.total_carbon);
+      setPurchaseCount((prev) => prev + 1);
       setSuggestions([]);
     } catch (error) {
       setResult({
@@ -75,14 +81,6 @@ function App() {
       });
     }
   }
-  function calculateCarbon() {
-  const carbonValue = product.length;
-
-  setResult(carbonValue);
-
-  setTotalCarbon(totalCarbon + carbonValue);
-  setPurchaseCount(purchaseCount + 1);
-}
 
   function handleQuantityChange(e) {
     const value = e.target.value;
@@ -138,17 +136,22 @@ function App() {
         <p className="text-gray-600 mb-6 text-center">
           Log a purchase to estimate its carbon footprint and explore lower-impact choices.
         </p>
-        <div className="mb-6 p-4 bg-blue-50 border rounded-lg">
-  <h2 className="text-lg font-semibold mb-2">Your Carbon Score</h2>
 
-  <p>
-    <strong>Total CO₂:</strong> {totalCarbon.toFixed(1)} kg
-  </p>
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg card">
+          <h2 className="text-lg font-semibold mb-2">Your Carbon Score</h2>
 
-  <p>
-    <strong>Purchases Logged:</strong> {purchaseCount}
-  </p>
-</div>
+          <p>
+            <strong>Total CO₂:</strong> {totalCarbon.toFixed(1)} kg
+          </p>
+
+          <p>
+            <strong>Purchases Logged:</strong> {purchaseCount}
+          </p>
+
+          <p>
+            <strong>Impact Level:</strong> {impactLevel}
+          </p>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-4 mb-4">
           <div className="relative" ref={searchRef}>
@@ -195,18 +198,25 @@ function App() {
         </button>
 
         {result?.error && (
-          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 result-card">
             {result.error}
           </div>
         )}
 
         {result && !result.error && (
-          <div className="mt-8 space-y-4">
-            <div className="p-5 bg-green-50 border border-green-200 rounded-xl">
-              <h2 className="text-xl font-semibold mb-3">Estimated Result</h2>
+          <div className="mt-8 space-y-4 result-card">
+            <div className="p-5 bg-green-50 border border-green-200 rounded-xl card">
+              <h2 className="text-xl font-semibold mb-3">🌍 Carbon Footprint</h2>
               <p><span className="font-medium">Product:</span> {result.product}</p>
               <p><span className="font-medium">Quantity (kg):</span> {result.quantity}</p>
               <p><span className="font-medium">Carbon Footprint:</span> {result.carbon} kg CO₂e</p>
+
+              <div className="impact-bar mt-3">
+                <div
+                  className={`impact-fill ${result.barColor}`}
+                  style={{ width: `${Math.min(result.carbon * 5, 100)}%` }}
+                ></div>
+              </div>
 
               <div className="mt-3">
                 <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${result.impactColor}`}>
@@ -215,13 +225,13 @@ function App() {
               </div>
             </div>
 
-            <div className="p-5 bg-blue-50 border border-blue-200 rounded-xl">
-              <h3 className="text-lg font-semibold mb-2">Suggestion</h3>
+            <div className="p-5 bg-blue-50 border border-blue-200 rounded-xl card">
+              <h3 className="text-lg font-semibold mb-2">💡 Suggestion</h3>
               <p className="text-gray-700">{result.suggestion}</p>
             </div>
 
-            <div className="p-5 bg-gray-50 border border-gray-200 rounded-xl">
-              <h3 className="text-lg font-semibold mb-2">Lower-Carbon Alternative</h3>
+            <div className="p-5 bg-gray-50 border border-gray-200 rounded-xl card">
+              <h3 className="text-lg font-semibold mb-2">♻ Lower-Carbon Alternative</h3>
               <p className="text-gray-700">{result.alternative}</p>
             </div>
           </div>

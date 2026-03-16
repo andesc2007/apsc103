@@ -1,78 +1,52 @@
 body {
   font-family: system-ui, sans-serif;
   background-color: #f3f4f6;
+  margin: 0;
 }
-button {
-  background-color: #2563eb;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+
 input:focus {
   outline: none;
   border-color: #16a34a;
-  box-shadow: 0 0 0 2px rgba(22,163,74,0.2);
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
 }
+
+button {
+  transition: all 0.2s ease;
+}
+
 .result-card {
-  animation: fadeIn 0.4s ease-in-out;
+  animation: fadeIn 0.35s ease-in-out;
 }
+
+.card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.impact-bar {
+  width: 100%;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.impact-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
-}
-.low-impact {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.medium-impact {
-  background-color: #fef9c3;
-  color: #854d0e;
-}
-
-.high-impact {
-  background-color: #fee2e2;
-  color: #7f1d1d;
-}
-.low-impact {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.medium-impact {
-  background-color: #fef9c3;
-  color: #854d0e;
-}
-
-.high-impact {
-  background-color: #fee2e2;
-  color: #7f1d1d;
-}
-.impact-bar {
-  width: 100%;
-  height: 12px;
-  background: #e5e7eb;
-  border-radius: 10px;
-  margin-top: 10px;
-}
-
-.impact-fill {
-  height: 100%;
-  width: 35%;
-  background: #16a34a;
-  border-radius: 10px;
-}
-input:focus {
-  outline: none;
-  border-color: #16a34a;
-  box-shadow: 0 0 0 2px rgba(22,163,74,0.2);
 }
