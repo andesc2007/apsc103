@@ -21,3 +21,6 @@ Then, in terminal, run the following commands:
 2. venv/Scripts/activate        (if the virtual environent isn't already running)
 3. cd Backend                   (if you're not already in Backend)
 4. python app.py
+
+Since this is a web application, React and Tailwind are linked in the header of every HTML file, 
+eliminating the need of downloading it.
