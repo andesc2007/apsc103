@@ -2,9 +2,12 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
+from social import social_bp
 
 app = Flask(__name__)
 CORS(app)
+
+app.register_blueprint(social_bp, url_prefix="/social")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "data", "item_database.csv")

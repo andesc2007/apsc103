@@ -12,6 +12,45 @@ function App() {
   const [purchaseCount, setPurchaseCount] = React.useState(0);
   const searchRef = React.useRef(null);
 
+  const [leaderboard, setLeaderboard] = React.useState([]);
+const [leaderboardError, setLeaderboardError] = React.useState("");
+
+React.useEffect(() => {
+  function handleClickOutside(event) {
+    if (searchRef.current && !searchRef.current.contains(event.target)) {
+      setSuggestions([]);
+    }
+  }
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
+
+React.useEffect(() => {
+  async function loadLeaderboard() {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/social/leaderboard");
+      const data = await response.json();
+
+      if (!response.ok) {
+        setLeaderboardError("Could not load leaderboard.");
+        return;
+      }
+
+      setLeaderboard(data);
+      setLeaderboardError("");
+    } catch (error) {
+      console.error("Leaderboard fetch failed:", error);
+      setLeaderboardError("Could not connect to leaderboard.");
+    }
+  }
+
+  loadLeaderboard();
+}, []);
+  
   const impactLevel =
     totalCarbon > 40
       ? "High Impact"
@@ -111,7 +150,33 @@ function App() {
       savings: carbonValue - altCarbon
     };
   }
+<div className="p-5 bg-purple-50 border border-purple-200 rounded-xl card mt-6">
+  <h3 className="text-lg font-semibold mb-3">🏆 Friends Leaderboard</h3>
 
+  {leaderboardError && (
+    <p className="text-red-700">{leaderboardError}</p>
+  )}
+
+  {!leaderboardError && leaderboard.length === 0 && (
+    <p className="text-gray-600">Loading leaderboard...</p>
+  )}
+
+  {leaderboard.length > 0 && (
+    <ul className="space-y-2">
+      {leaderboard.map((user, index) => (
+        <li
+          key={user.name}
+          className="flex justify-between items-center bg-white border border-purple-100 rounded-lg px-4 py-3"
+        >
+          <span>
+            <strong>{index + 1}.</strong> {user.name}
+          </span>
+          <span>{user.weekly_carbon.toFixed(1)} kg CO₂e</span>
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
   async function calculateCarbon() {
     const amount = parseFloat(quantity);
 
@@ -346,6 +411,33 @@ function App() {
             </div>
           </div>
         )}
+        <div className="p-5 bg-purple-50 border border-purple-200 rounded-xl card mt-6">
+  <h3 className="text-lg font-semibold mb-3">🏆 Friends Leaderboard</h3>
+
+  {leaderboardError && (
+    <p className="text-red-700">{leaderboardError}</p>
+  )}
+
+  {!leaderboardError && leaderboard.length === 0 && (
+    <p className="text-gray-600">Loading leaderboard...</p>
+  )}
+
+  {leaderboard.length > 0 && (
+    <ul className="space-y-2">
+      {leaderboard.map((user, index) => (
+        <li
+          key={user.name}
+          className="flex justify-between items-center bg-white border border-purple-100 rounded-lg px-4 py-3"
+        >
+          <span>
+            <strong>{index + 1}.</strong> {user.name}
+          </span>
+          <span>{user.weekly_carbon.toFixed(1)} kg CO₂e</span>
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
       </div>
     </div>
   );
