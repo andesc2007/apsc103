@@ -8,6 +8,10 @@ function App() {
   const [transportDistance, setTransportDistance] = React.useState("");
   const [transportResult, setTransportResult] = React.useState(null);
 
+  const [energyType, setEnergyType] = React.useState("");
+  const [energyAmount, setEnergyAmount] = React.useState("");
+  const [energyResult, setEnergyResult] = React.useState(null);
+
   const [totalCarbon, setTotalCarbon] = React.useState(0);
   const [activityCount, setActivityCount] = React.useState(0);
 
@@ -113,6 +117,16 @@ function App() {
     };
   }
 
+  function getOverallRecommendation() {
+    if (totalCarbon > 50) {
+      return "Your current footprint is high. Focus on reducing major contributors such as car travel, flights, and high-impact food choices.";
+    }
+    if (totalCarbon > 20) {
+      return "Your footprint is moderate. Small improvements in food, transport, or home energy could make a meaningful difference.";
+    }
+    return "Your current footprint is relatively low. Continue maintaining lower-impact habits and monitoring your activities.";
+  }
+
   async function calculateCarbon() {
     const amount = parseFloat(quantity);
 
@@ -196,7 +210,7 @@ function App() {
 
     const emissionFactors = {
       car: 0.21,
-      bus: 0.10,
+      bus: 0.1,
       train: 0.04,
       bicycle: 0.0,
       walking: 0.0,
@@ -220,21 +234,16 @@ function App() {
       barColor = "bg-yellow-500";
     }
 
-    let suggestion =
-      "Great choice. This transport option has a relatively low footprint.";
+    let suggestion = "Great choice. This transport option has a relatively low footprint.";
 
     if (transportMode === "car") {
-      suggestion =
-        "Consider public transit, carpooling, cycling, or walking for shorter trips.";
+      suggestion = "Consider public transit, carpooling, cycling, or walking for shorter trips.";
     } else if (transportMode === "flight") {
-      suggestion =
-        "Flights have a high carbon footprint. Consider rail travel or reducing flight frequency where possible.";
+      suggestion = "Flights have a high carbon footprint. Consider rail travel or reducing flight frequency where possible.";
     } else if (transportMode === "bus") {
-      suggestion =
-        "Public transit reduces emissions per person compared to private vehicle travel.";
+      suggestion = "Public transit reduces emissions per person compared to private vehicle travel.";
     } else if (transportMode === "train") {
-      suggestion =
-        "Rail travel is often one of the lower-carbon long-distance options.";
+      suggestion = "Rail travel is often one of the lower-carbon long-distance options.";
     }
 
     setTransportResult({
@@ -251,9 +260,81 @@ function App() {
     setActivityCount((prev) => prev + 1);
   }
 
+  function calculateEnergy() {
+    const amount = parseFloat(energyAmount);
+
+    if (!energyType || !energyAmount.trim() || isNaN(amount) || amount < 0) {
+      setEnergyResult({
+        error: "Please select a valid household energy source and enter a valid amount."
+      });
+      return;
+    }
+
+    const emissionFactors = {
+      electricity: 0.12,
+      natural_gas: 1.89,
+      heating_oil: 2.68,
+      propane: 1.51
+    };
+
+    const units = {
+      electricity: "kWh",
+      natural_gas: "m³",
+      heating_oil: "L",
+      propane: "L"
+    };
+
+    const factor = emissionFactors[energyType];
+    const totalEnergyCarbon = factor * amount;
+
+    let impact = "Low Impact";
+    let impactColor = "bg-green-100 text-green-700";
+    let barColor = "bg-green-500";
+
+    if (totalEnergyCarbon > 20) {
+      impact = "High Impact";
+      impactColor = "bg-red-100 text-red-700";
+      barColor = "bg-red-500";
+    } else if (totalEnergyCarbon > 10) {
+      impact = "Moderate Impact";
+      impactColor = "bg-yellow-100 text-yellow-700";
+      barColor = "bg-yellow-500";
+    }
+
+    let suggestion =
+      "This energy source is being tracked successfully. Continue monitoring usage over time.";
+
+    if (energyType === "electricity") {
+      suggestion =
+        "Reducing unnecessary lighting and appliance use can lower electricity-related emissions.";
+    } else if (energyType === "natural_gas") {
+      suggestion =
+        "Improving insulation or lowering thermostat settings can reduce heating-related emissions.";
+    } else if (energyType === "heating_oil") {
+      suggestion =
+        "Heating oil has a relatively high footprint. Consider more efficient heating systems where possible.";
+    } else if (energyType === "propane") {
+      suggestion =
+        "Reducing propane consumption through efficient heating and cooking practices can lower emissions.";
+    }
+
+    setEnergyResult({
+      type: energyType,
+      amount,
+      unit: units[energyType],
+      carbon: totalEnergyCarbon,
+      impact,
+      impactColor,
+      barColor,
+      suggestion
+    });
+
+    setTotalCarbon((prev) => prev + totalEnergyCarbon);
+    setActivityCount((prev) => prev + 1);
+  }
+
   function handleQuantityChange(e) {
     const value = e.target.value;
-
     if (/^\d*\.?\d*$/.test(value)) {
       setQuantity(value);
     }
@@ -261,9 +342,15 @@ function App() {
 
   function handleTransportDistanceChange(e) {
     const value = e.target.value;
-
     if (/^\d*\.?\d*$/.test(value)) {
       setTransportDistance(value);
+    }
+  }
+
+  function handleEnergyAmountChange(e) {
+    const value = e.target.value;
+    if (/^\d*\.?\d*$/.test(value)) {
+      setEnergyAmount(value);
     }
   }
 
@@ -275,7 +362,6 @@ function App() {
     }
 
     document.addEventListener("mousedown", handleClickOutside);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -305,28 +391,26 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4">
-      <div className="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-8">
+      <div className="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl p-8">
         <h1 className="text-3xl font-bold mb-2 text-center text-green-700">
           Carbon Footprint Tracker
         </h1>
 
         <p className="text-gray-600 mb-6 text-center">
-          Log a purchase or transportation activity to estimate its carbon footprint and explore lower-impact choices.
+          Track the carbon impact of food purchases, transportation, and household energy use.
         </p>
 
         <div className="mb-6 p-4 bg-blue-50 border rounded-lg card">
           <h2 className="text-lg font-semibold mb-2">Your Carbon Score</h2>
+          <p><strong>Total CO₂:</strong> {totalCarbon.toFixed(1)} kg</p>
+          <p><strong>Activities Logged:</strong> {activityCount}</p>
+          <p><strong>Impact Level:</strong> {impactLevel}</p>
+        </div>
 
-          <p>
-            <strong>Total CO₂:</strong> {totalCarbon.toFixed(1)} kg
-          </p>
-
-          <p>
-            <strong>Activities Logged:</strong> {activityCount}
-          </p>
-
-          <p>
-            <strong>Impact Level:</strong> {impactLevel}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Emission Sources</h2>
+          <p className="text-gray-600">
+            Log different sources of emissions to build a more complete estimate of your carbon footprint.
           </p>
         </div>
 
@@ -493,6 +577,90 @@ function App() {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="mt-10 p-5 bg-white border rounded-xl card">
+          <h2 className="text-xl font-semibold mb-4">🏠 Household Energy Emissions</h2>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <select
+              value={energyType}
+              onChange={(e) => setEnergyType(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3"
+            >
+              <option value="">Select energy source</option>
+              <option value="electricity">Electricity</option>
+              <option value="natural_gas">Natural Gas</option>
+              <option value="heating_oil">Heating Oil</option>
+              <option value="propane">Propane</option>
+            </select>
+
+            <input
+              type="text"
+              value={energyAmount}
+              onChange={handleEnergyAmountChange}
+              placeholder="Usage amount"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3"
+            />
+          </div>
+
+          <button
+            onClick={calculateEnergy}
+            className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition font-semibold"
+          >
+            Calculate Household Energy Emissions
+          </button>
+
+          {energyResult?.error && (
+            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 result-card">
+              {energyResult.error}
+            </div>
+          )}
+
+          {energyResult && !energyResult.error && (
+            <div className="mt-8 p-5 bg-purple-50 border border-purple-200 rounded-xl result-card card">
+              <h3 className="text-xl font-semibold mb-3">⚡ Energy Result</h3>
+              <p><span className="font-medium">Source:</span> {energyResult.type.replace("_", " ")}</p>
+              <p><span className="font-medium">Usage:</span> {energyResult.amount} {energyResult.unit}</p>
+              <p><span className="font-medium">Carbon Footprint:</span> {energyResult.carbon.toFixed(2)} kg CO₂e</p>
+
+              <div className="impact-bar mt-3">
+                <div
+                  className={`impact-fill ${energyResult.barColor}`}
+                  style={{ width: `${Math.min(energyResult.carbon * 5, 100)}%` }}
+                ></div>
+              </div>
+
+              <div className="mt-3">
+                <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${energyResult.impactColor}`}>
+                  {energyResult.impact}
+                </span>
+              </div>
+
+              <div className="mt-4">
+                <h4 className="text-lg font-semibold mb-2">💡 Suggestion</h4>
+                <p className="text-gray-700">{energyResult.suggestion}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-10 p-5 bg-green-50 border border-green-200 rounded-xl card">
+          <h2 className="text-xl font-semibold mb-3">📊 Dashboard Summary</h2>
+          <p className="mb-2">
+            <strong>Total Estimated Footprint:</strong> {totalCarbon.toFixed(2)} kg CO₂e
+          </p>
+          <p className="mb-2">
+            <strong>Total Logged Activities:</strong> {activityCount}
+          </p>
+          <p className="mb-2">
+            <strong>Overall Impact Level:</strong> {impactLevel}
+          </p>
+
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">✅ Recommended Next Step</h3>
+            <p className="text-gray-700">{getOverallRecommendation()}</p>
+          </div>
         </div>
       </div>
     </div>
