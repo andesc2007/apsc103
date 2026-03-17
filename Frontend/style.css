@@ -4,7 +4,8 @@ body {
   margin: 0;
 }
 
-input:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: #16a34a;
   box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
@@ -12,6 +13,10 @@ input:focus {
 
 button {
   transition: all 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
 }
 
 .result-card {
@@ -55,6 +60,20 @@ button {
   color: #166534;
   font-weight: 600;
   margin-top: 8px;
+}
+
+select {
+  background-color: white;
+}
+
+ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+li {
+  transition: background-color 0.15s ease;
 }
 
 @keyframes fadeIn {
