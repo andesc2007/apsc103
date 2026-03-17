@@ -1,6 +1,6 @@
-import Dashboard from "./pages/Dashboard.js";
-import Catalog from "./pages/catalog.js";
-import PurchaseLog from "./pages/purchaselog.js";
+// import Dashboard from "./pages/Dashboard.js";
+// import Catalog from "./pages/catalog.js";
+// import PurchaseLog from "./pages/purchaselog.js";
 
 
 function App() {
