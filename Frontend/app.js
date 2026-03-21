@@ -23,6 +23,7 @@ function App() {
   const [friendName, setFriendName] = React.useState("");
   const [friendCarbon, setFriendCarbon] = React.useState("");
   const [customFriends, setCustomFriends] = React.useState([]);
+  const [selectedFriend, setSelectedFriend] = React.useState(null);
 
   React.useEffect(() => {
     function handleClickOutside(event) {
@@ -191,6 +192,12 @@ function App() {
 
     setFriendName("");
     setFriendCarbon("");
+  }
+
+  function getFriendImpactLevel(carbon) {
+    if (carbon > 20) return "High Impact";
+    if (carbon > 10) return "Moderate Impact";
+    return "Low Impact";
   }
 
   async function calculateCarbon() {
@@ -735,7 +742,8 @@ function App() {
               {displayedLeaderboard.map((user, index) => (
                 <li
                   key={`${user.name}-${index}`}
-                  className="flex justify-between items-center bg-white border border-purple-100 rounded-lg px-4 py-3"
+                  onClick={() => setSelectedFriend(user)}
+                  className="flex justify-between items-center bg-white border border-purple-100 rounded-lg px-4 py-3 cursor-pointer hover:bg-purple-100 transition"
                 >
                   <span>
                     <strong>{index + 1}.</strong> {user.name}
@@ -746,6 +754,42 @@ function App() {
             </ul>
           )}
         </div>
+
+        {selectedFriend && (
+          <div className="mt-6 p-5 bg-white border border-purple-200 rounded-xl card">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-xl font-semibold text-purple-700">👤 Friend Profile</h3>
+                <p className="text-gray-600">Social snapshot for {selectedFriend.name}</p>
+              </div>
+
+              <button
+                onClick={() => setSelectedFriend(null)}
+                className="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg text-sm font-medium"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-2 text-gray-800">
+              <p>
+                <strong>Name:</strong> {selectedFriend.name}
+              </p>
+              <p>
+                <strong>Weekly Score:</strong> {selectedFriend.weekly_carbon.toFixed(1)} kg CO₂e
+              </p>
+              <p>
+                <strong>Impact Level:</strong> {getFriendImpactLevel(selectedFriend.weekly_carbon)}
+              </p>
+            </div>
+
+            <div className="mt-4 p-4 bg-purple-50 border border-purple-100 rounded-lg">
+              <p className="text-sm text-gray-700">
+                Detailed product activity remains private. Only summary social stats are shown.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="mt-10 p-5 bg-green-50 border border-green-200 rounded-xl card">
           <h2 className="text-xl font-semibold mb-3">📊 Dashboard Summary</h2>
