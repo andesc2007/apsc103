@@ -21,9 +21,17 @@ function App() {
   const [leaderboardError, setLeaderboardError] = React.useState("");
 
   const [friendName, setFriendName] = React.useState("");
-  const [friendCarbon, setFriendCarbon] = React.useState("");
   const [customFriends, setCustomFriends] = React.useState([]);
   const [selectedFriend, setSelectedFriend] = React.useState(null);
+
+  const mockUsers = [
+    { name: "Aisha", weekly_carbon: 11.2 },
+    { name: "Omar", weekly_carbon: 15.6 },
+    { name: "Zara", weekly_carbon: 9.8 },
+    { name: "Iman", weekly_carbon: 13.4 },
+    { name: "Hana", weekly_carbon: 10.7 },
+    { name: "Sara", weekly_carbon: 14.1 }
+  ];
 
   React.useEffect(() => {
     function handleClickOutside(event) {
@@ -173,25 +181,40 @@ function App() {
 
   function addFriend() {
     const trimmedName = friendName.trim();
-    const carbonValue = parseFloat(friendCarbon);
 
-    if (!trimmedName || friendCarbon.trim() === "" || isNaN(carbonValue) || carbonValue < 0) {
+    if (!trimmedName) {
       return;
     }
 
-    const newFriend = {
-      name: trimmedName,
-      weekly_carbon: carbonValue
-    };
+    const matchedUser = mockUsers.find(
+      (user) => user.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (!matchedUser) {
+      alert("User not found.");
+      return;
+    }
 
     setCustomFriends((prev) => {
-      const updated = [...prev, newFriend];
+      const alreadyExists =
+        prev.some(
+          (friend) => friend.name.toLowerCase() === matchedUser.name.toLowerCase()
+        ) ||
+        leaderboard.some(
+          (friend) => friend.name.toLowerCase() === matchedUser.name.toLowerCase()
+        );
+
+      if (alreadyExists) {
+        alert("Friend already added.");
+        return prev;
+      }
+
+      const updated = [...prev, matchedUser];
       updated.sort((a, b) => a.weekly_carbon - b.weekly_carbon);
       return updated;
     });
 
     setFriendName("");
-    setFriendCarbon("");
   }
 
   function getFriendImpactLevel(carbon) {
@@ -699,25 +722,12 @@ function App() {
         <div className="p-5 bg-purple-50 border border-purple-200 rounded-xl card mt-6">
           <h3 className="text-lg font-semibold mb-3">🏆 Friends Leaderboard</h3>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div className="mb-4">
             <input
               type="text"
               value={friendName}
               onChange={(e) => setFriendName(e.target.value)}
-              placeholder="Enter friend name"
-              className="w-full border border-gray-300 rounded-lg px-4 py-3"
-            />
-
-            <input
-              type="text"
-              value={friendCarbon}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^\d*\.?\d*$/.test(value)) {
-                  setFriendCarbon(value);
-                }
-              }}
-              placeholder="Weekly carbon (kg CO₂e)"
+              placeholder="Enter existing user name (e.g. Aisha)"
               className="w-full border border-gray-300 rounded-lg px-4 py-3"
             />
           </div>
