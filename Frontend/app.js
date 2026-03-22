@@ -25,12 +25,48 @@ function App() {
   const [selectedFriend, setSelectedFriend] = React.useState(null);
 
   const mockUsers = [
-    { name: "Aisha", weekly_carbon: 11.2 },
-    { name: "Omar", weekly_carbon: 15.6 },
-    { name: "Zara", weekly_carbon: 9.8 },
-    { name: "Iman", weekly_carbon: 13.4 },
-    { name: "Hana", weekly_carbon: 10.7 },
-    { name: "Sara", weekly_carbon: 14.1 }
+    {
+      name: "Aisha",
+      weekly_carbon: 11.2,
+      last_week_carbon: 13.0,
+      activities_logged: 5,
+      recent_update: "Aisha reduced her footprint this week."
+    },
+    {
+      name: "Omar",
+      weekly_carbon: 15.6,
+      last_week_carbon: 15.1,
+      activities_logged: 6,
+      recent_update: "Omar logged more transport activity this week."
+    },
+    {
+      name: "Zara",
+      weekly_carbon: 9.8,
+      last_week_carbon: 11.4,
+      activities_logged: 4,
+      recent_update: "Zara is currently leading with the lowest weekly score."
+    },
+    {
+      name: "Iman",
+      weekly_carbon: 13.4,
+      last_week_carbon: 14.7,
+      activities_logged: 5,
+      recent_update: "Iman made steady progress compared with last week."
+    },
+    {
+      name: "Hana",
+      weekly_carbon: 10.7,
+      last_week_carbon: 12.8,
+      activities_logged: 4,
+      recent_update: "Hana made one of the biggest improvements this week."
+    },
+    {
+      name: "Sara",
+      weekly_carbon: 14.1,
+      last_week_carbon: 13.6,
+      activities_logged: 5,
+      recent_update: "Sara is working toward a lower-impact week."
+    }
   ];
 
   React.useEffect(() => {
@@ -58,7 +94,20 @@ function App() {
           return;
         }
 
-        setLeaderboard(data);
+        const enrichedData = data.map((user, index) => {
+          const fallbackLastWeek = Number((user.weekly_carbon + 1.8).toFixed(1));
+          return {
+            ...user,
+            activities_logged:
+              user.activities_logged ?? Math.max(2, Math.round(user.weekly_carbon / 2)),
+            last_week_carbon: user.last_week_carbon ?? fallbackLastWeek,
+            recent_update:
+              user.recent_update ??
+              `${user.name} is tracking progress and staying active this week.`
+          };
+        });
+
+        setLeaderboard(enrichedData);
         setLeaderboardError("");
       } catch (error) {
         console.error("Leaderboard fetch failed:", error);
@@ -221,6 +270,18 @@ function App() {
     if (carbon > 20) return "High Impact";
     if (carbon > 10) return "Moderate Impact";
     return "Low Impact";
+  }
+
+  function getTrendLabel(current, previous) {
+    if (current < previous) return "Improved";
+    if (current > previous) return "Higher than last week";
+    return "No change";
+  }
+
+  function getTrendColor(current, previous) {
+    if (current < previous) return "text-green-700 bg-green-100";
+    if (current > previous) return "text-red-700 bg-red-100";
+    return "text-gray-700 bg-gray-100";
   }
 
   async function calculateCarbon() {
@@ -475,6 +536,36 @@ function App() {
   const displayedLeaderboard = [...leaderboard, ...customFriends].sort(
     (a, b) => a.weekly_carbon - b.weekly_carbon
   );
+
+  const socialUpdates = displayedLeaderboard.slice(0, 4).map((user, index, arr) => {
+    const change = Number((user.weekly_carbon - user.last_week_carbon).toFixed(1));
+
+    let text = user.recent_update;
+
+    if (index === 0) {
+      text = `${user.name} is leading your friends leaderboard this week.`;
+    } else if (change < 0) {
+      text = `${user.name} lowered their footprint by ${Math.abs(change).toFixed(1)} kg CO₂e from last week.`;
+    } else if (change > 0) {
+      text = `${user.name} is ${change.toFixed(1)} kg CO₂e above last week and still working on improvement.`;
+    } else {
+      text = `${user.name} matched last week's footprint exactly.`;
+    }
+
+    return {
+      name: user.name,
+      text,
+      change
+    };
+  });
+
+  const mostImprovedFriend =
+    displayedLeaderboard.length > 0
+      ? [...displayedLeaderboard].sort(
+          (a, b) =>
+            a.weekly_carbon - a.last_week_carbon - (b.weekly_carbon - b.last_week_carbon)
+        )[0]
+      : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-10 px-4">
@@ -765,6 +856,90 @@ function App() {
           )}
         </div>
 
+        <div className="mt-6 p-5 bg-white border border-purple-200 rounded-xl card">
+          <h3 className="text-xl font-semibold text-purple-700 mb-3">📢 Friends Activity Feed</h3>
+
+          {socialUpdates.length === 0 ? (
+            <p className="text-gray-600">Add friends to see social updates.</p>
+          ) : (
+            <div className="space-y-3">
+              {socialUpdates.map((update, index) => (
+                <div
+                  key={`${update.name}-${index}`}
+                  className="bg-purple-50 border border-purple-100 rounded-lg p-4"
+                >
+                  <p className="text-gray-800">{update.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6 p-5 bg-white border border-green-200 rounded-xl card">
+          <h3 className="text-xl font-semibold text-green-700 mb-3">📈 Weekly Comparison</h3>
+
+          {displayedLeaderboard.length === 0 ? (
+            <p className="text-gray-600">Add friends to compare this week versus last week.</p>
+          ) : (
+            <div className="space-y-4">
+              {mostImprovedFriend && (
+                <div className="p-4 bg-green-50 border border-green-100 rounded-lg">
+                  <p className="text-gray-800">
+                    <strong>Most Improved:</strong> {mostImprovedFriend.name}{" "}
+                    improved by{" "}
+                    {Math.abs(
+                      mostImprovedFriend.weekly_carbon - mostImprovedFriend.last_week_carbon
+                    ).toFixed(1)}{" "}
+                    kg CO₂e compared with last week.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {displayedLeaderboard.map((user, index) => {
+                  const difference = Number(
+                    (user.weekly_carbon - user.last_week_carbon).toFixed(1)
+                  );
+
+                  return (
+                    <div
+                      key={`${user.name}-comparison-${index}`}
+                      className="bg-gray-50 border border-gray-200 rounded-lg p-4"
+                    >
+                      <div className="flex justify-between items-start gap-4">
+                        <div>
+                          <p className="font-semibold text-gray-900">{user.name}</p>
+                          <p className="text-sm text-gray-700">
+                            This week: {user.weekly_carbon.toFixed(1)} kg CO₂e
+                          </p>
+                          <p className="text-sm text-gray-700">
+                            Last week: {user.last_week_carbon.toFixed(1)} kg CO₂e
+                          </p>
+                        </div>
+
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getTrendColor(
+                            user.weekly_carbon,
+                            user.last_week_carbon
+                          )}`}
+                        >
+                          {getTrendLabel(user.weekly_carbon, user.last_week_carbon)}
+                        </span>
+                      </div>
+
+                      <p className="text-sm text-gray-700 mt-2">
+                        Weekly change:{" "}
+                        {difference > 0 ? "+" : ""}
+                        {difference.toFixed(1)} kg CO₂e
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {selectedFriend && (
           <div className="mt-6 p-5 bg-white border border-purple-200 rounded-xl card">
             <div className="flex justify-between items-start mb-4">
@@ -790,6 +965,19 @@ function App() {
               </p>
               <p>
                 <strong>Impact Level:</strong> {getFriendImpactLevel(selectedFriend.weekly_carbon)}
+              </p>
+              <p>
+                <strong>Total Activities Logged:</strong> {selectedFriend.activities_logged}
+              </p>
+              <p>
+                <strong>Last Week:</strong> {selectedFriend.last_week_carbon.toFixed(1)} kg CO₂e
+              </p>
+              <p>
+                <strong>Weekly Change:</strong>{" "}
+                {(selectedFriend.weekly_carbon - selectedFriend.last_week_carbon).toFixed(1)} kg CO₂e
+              </p>
+              <p>
+                <strong>Recent Update:</strong> {selectedFriend.recent_update}
               </p>
             </div>
 
