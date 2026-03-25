@@ -16,6 +16,132 @@ function App() {
   const [activityCount, setActivityCount] = React.useState(0);
 
   const searchRef = React.useRef(null);
+  const addFriendRef = React.useRef(null);
+
+  const [leaderboard, setLeaderboard] = React.useState([]);
+  const [leaderboardError, setLeaderboardError] = React.useState("");
+
+  const [friendName, setFriendName] = React.useState("");
+  const [friendSuggestions, setFriendSuggestions] = React.useState([]);
+  const [friendFeedback, setFriendFeedback] = React.useState("");
+  const [friendFeedbackType, setFriendFeedbackType] = React.useState("");
+  const [customFriends, setCustomFriends] = React.useState([]);
+  const [selectedFriend, setSelectedFriend] = React.useState(null);
+
+  const mockUsers = [
+    {
+      name: "Aisha",
+      weekly_carbon: 11.2,
+      last_week_carbon: 13.0,
+      activities_logged: 5,
+      recent_update: "Aisha reduced her footprint this week.",
+      best_category: "Transport",
+      biggest_source: "Food"
+    },
+    {
+      name: "Omar",
+      weekly_carbon: 15.6,
+      last_week_carbon: 15.1,
+      activities_logged: 6,
+      recent_update: "Omar logged more transport activity this week.",
+      best_category: "Energy",
+      biggest_source: "Transport"
+    },
+    {
+      name: "Zara",
+      weekly_carbon: 9.8,
+      last_week_carbon: 11.4,
+      activities_logged: 4,
+      recent_update: "Zara is currently leading with the lowest weekly score.",
+      best_category: "Food",
+      biggest_source: "Energy"
+    },
+    {
+      name: "Iman",
+      weekly_carbon: 13.4,
+      last_week_carbon: 14.7,
+      activities_logged: 5,
+      recent_update: "Iman made steady progress compared with last week.",
+      best_category: "Transport",
+      biggest_source: "Food"
+    },
+    {
+      name: "Hana",
+      weekly_carbon: 10.7,
+      last_week_carbon: 12.8,
+      activities_logged: 4,
+      recent_update: "Hana made one of the biggest improvements this week.",
+      best_category: "Food",
+      biggest_source: "Transport"
+    },
+    {
+      name: "Sara",
+      weekly_carbon: 14.1,
+      last_week_carbon: 13.6,
+      activities_logged: 5,
+      recent_update: "Sara is working toward a lower-impact week.",
+      best_category: "Energy",
+      biggest_source: "Food"
+    }
+  ];
+
+  React.useEffect(() => {
+    function handleClickOutside(event) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSuggestions([]);
+      }
+
+      if (addFriendRef.current && !addFriendRef.current.contains(event.target)) {
+        setFriendSuggestions([]);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    async function loadLeaderboard() {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/social/leaderboard");
+        const data = await response.json();
+
+        if (!response.ok) {
+          setLeaderboardError("Could not load leaderboard.");
+          return;
+        }
+
+        const enrichedData = data.map((user, index) => {
+          const fallbackLastWeek = Number((user.weekly_carbon + 1.8).toFixed(1));
+          const fallbackBestCategory = ["Food", "Transport", "Energy"][index % 3];
+          const fallbackBiggestSource = ["Transport", "Food", "Energy"][index % 3];
+
+          return {
+            ...user,
+            activities_logged:
+              user.activities_logged ?? Math.max(2, Math.round(user.weekly_carbon / 2)),
+            last_week_carbon: user.last_week_carbon ?? fallbackLastWeek,
+            recent_update:
+              user.recent_update ??
+              `${user.name} is tracking progress and staying active this week.`,
+            best_category: user.best_category ?? fallbackBestCategory,
+            biggest_source: user.biggest_source ?? fallbackBiggestSource
+          };
+        });
+
+        setLeaderboard(enrichedData);
+        setLeaderboardError("");
+      } catch (error) {
+        console.error("Leaderboard fetch failed:", error);
+        setLeaderboardError("Could not connect to leaderboard.");
+      }
+    }
+
+    loadLeaderboard();
+  }, []);
 
   const impactLevel =
     totalCarbon > 40
@@ -23,6 +149,9 @@ function App() {
       : totalCarbon > 20
       ? "Moderate Impact"
       : "Low Impact";
+
+  const myWeeklyCarbon = Number(totalCarbon.toFixed(1));
+  const myLastWeekCarbon = Number((totalCarbon + 2.4).toFixed(1));
 
   function getSuggestion(productName) {
     const p = productName.toLowerCase();
@@ -125,6 +254,123 @@ function App() {
       return "Your footprint is moderate. Small improvements in food, transport, or home energy could make a meaningful difference.";
     }
     return "Your current footprint is relatively low. Continue maintaining lower-impact habits and monitoring your activities.";
+  }
+
+  function getFriendImpactLevel(carbon) {
+    if (carbon > 20) return "High Impact";
+    if (carbon > 10) return "Moderate Impact";
+    return "Low Impact";
+  }
+
+  function getTrendLabel(current, previous) {
+    if (current < previous) return "Improved";
+    if (current > previous) return "Higher than last week";
+    return "No change";
+  }
+
+  function getTrendColor(current, previous) {
+    if (current < previous) return "text-green-700 bg-green-100";
+    if (current > previous) return "text-red-700 bg-red-100";
+    return "text-gray-700 bg-gray-100";
+  }
+
+  function getRankBadge(index) {
+    if (index === 0) return "🥇";
+    if (index === 1) return "🥈";
+    if (index === 2) return "🥉";
+    return "•";
+  }
+
+  function showFriendFeedback(message, type) {
+    setFriendFeedback(message);
+    setFriendFeedbackType(type);
+  }
+
+  function clearFriendFeedback() {
+    setFriendFeedback("");
+    setFriendFeedbackType("");
+  }
+
+  function normalizeFriend(user, index = 0) {
+    const fallbackLastWeek = Number((user.weekly_carbon + 1.8).toFixed(1));
+    const fallbackBestCategory = ["Food", "Transport", "Energy"][index % 3];
+    const fallbackBiggestSource = ["Transport", "Food", "Energy"][index % 3];
+
+    return {
+      ...user,
+      activities_logged: user.activities_logged ?? Math.max(2, Math.round(user.weekly_carbon / 2)),
+      last_week_carbon: user.last_week_carbon ?? fallbackLastWeek,
+      recent_update:
+        user.recent_update ??
+        `${user.name} is tracking progress and staying active this week.`,
+      best_category: user.best_category ?? fallbackBestCategory,
+      biggest_source: user.biggest_source ?? fallbackBiggestSource
+    };
+  }
+
+  function friendAlreadyAdded(name) {
+    return [...leaderboard, ...customFriends].some(
+      (friend) => friend.name.toLowerCase() === name.toLowerCase()
+    );
+  }
+
+  function handleFriendInputChange(e) {
+    const value = e.target.value;
+    setFriendName(value);
+    clearFriendFeedback();
+
+    if (!value.trim()) {
+      setFriendSuggestions([]);
+      return;
+    }
+
+    const matches = mockUsers.filter((user) => {
+      const matchesName = user.name.toLowerCase().includes(value.toLowerCase());
+      const notAlreadyAdded = !friendAlreadyAdded(user.name);
+      return matchesName && notAlreadyAdded;
+    });
+
+    setFriendSuggestions(matches);
+  }
+
+  function addFriendByName(nameToAdd) {
+    const trimmedName = nameToAdd.trim();
+
+    if (!trimmedName) {
+      showFriendFeedback("Type a name to add a friend.", "error");
+      return;
+    }
+
+    const matchedUser = mockUsers.find(
+      (user) => user.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (!matchedUser) {
+      showFriendFeedback("User not found. Try one of the suggested names.", "error");
+      return;
+    }
+
+    if (friendAlreadyAdded(matchedUser.name)) {
+      showFriendFeedback("That friend is already on your leaderboard.", "error");
+      return;
+    }
+
+    const normalizedFriend = normalizeFriend(matchedUser, customFriends.length);
+
+    setCustomFriends((prev) => {
+      const updated = [...prev, normalizedFriend];
+      updated.sort((a, b) => a.weekly_carbon - b.weekly_carbon);
+      return updated;
+    });
+
+    setFriendName("");
+    setFriendSuggestions([]);
+    setSelectedFriend(normalizedFriend);
+    showFriendFeedback(`${matchedUser.name} added successfully.`, "success");
+  }
+
+  function addFriend() {
+    addFriendByName(friendName);
   }
 
   async function calculateCarbon() {
@@ -354,19 +600,6 @@ function App() {
     }
   }
 
-  React.useEffect(() => {
-    function handleClickOutside(event) {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setSuggestions([]);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
   async function handleInputChange(e) {
     const value = e.target.value;
     setProduct(value);
@@ -389,67 +622,103 @@ function App() {
     }
   }
 
+  const displayedLeaderboard = [...leaderboard, ...customFriends].sort(
+    (a, b) => a.weekly_carbon - b.weekly_carbon
+  );
+
+  const socialUpdates = displayedLeaderboard.slice(0, 4).map((user, index) => {
+    const change = Number((user.weekly_carbon - user.last_week_carbon).toFixed(1));
+
+    let text = user.recent_update;
+
+    if (index === 0) {
+      text = `${user.name} is leading your friends leaderboard this week.`;
+    } else if (change < 0) {
+      text = `${user.name} lowered their footprint by ${Math.abs(change).toFixed(1)} kg CO₂e from last week.`;
+    } else if (change > 0) {
+      text = `${user.name} is ${change.toFixed(1)} kg CO₂e above last week and still working on improvement.`;
+    } else {
+      text = `${user.name} matched last week's footprint exactly.`;
+    }
+
+    return {
+      name: user.name,
+      text,
+      change
+    };
+  });
+
+  const mostImprovedFriend =
+    displayedLeaderboard.length > 0
+      ? [...displayedLeaderboard].sort(
+          (a, b) =>
+            a.weekly_carbon - a.last_week_carbon - (b.weekly_carbon - b.last_week_carbon)
+        )[0]
+      : null;
+
+  const bestFriend = displayedLeaderboard.length > 0 ? displayedLeaderboard[0] : null;
+
+  const myRank =
+    displayedLeaderboard.length > 0
+      ? displayedLeaderboard.filter((user) => user.weekly_carbon < myWeeklyCarbon).length + 1
+      : 1;
+
+  const compareDifference = selectedFriend
+    ? Number((myWeeklyCarbon - selectedFriend.weekly_carbon).toFixed(1))
+    : null;
+
+  const addableSuggestedUsers = mockUsers.filter(
+    (user) => !friendAlreadyAdded(user.name)
+  );
+
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4">
-      <div className="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl p-8">
-        <h1 className="text-3xl font-bold mb-2 text-center text-green-700">
-          Carbon Footprint Tracker
-        </h1>
-
-        <p className="text-gray-600 mb-6 text-center">
-          Track the carbon impact of food purchases, transportation, and household energy use.
-        </p>
-
-        <div className="mb-6 p-4 bg-blue-50 border rounded-lg card">
-          <h2 className="text-lg font-semibold mb-2">Your Carbon Score</h2>
-          <p><strong>Total CO₂:</strong> {totalCarbon.toFixed(1)} kg</p>
-          <p><strong>Activities Logged:</strong> {activityCount}</p>
-          <p><strong>Impact Level:</strong> {impactLevel}</p>
-        </div>
-
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Emission Sources</h2>
-          <p className="text-gray-600">
-            Log different sources of emissions to build a more complete estimate of your carbon footprint.
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-10 px-4">
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-green-700 mb-2">
+            EcoTrack Carbon Footprint Calculator
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Estimate your environmental impact from food, transportation, and household energy usage.
           </p>
         </div>
 
         <div className="p-5 bg-white border rounded-xl card">
-          <h2 className="text-xl font-semibold mb-4">🛒 Product Emissions</h2>
+          <h2 className="text-xl font-semibold mb-4">🍽 Product Carbon Footprint</h2>
+
+          <div ref={searchRef} className="mb-4 relative">
+            <input
+              type="text"
+              value={product}
+              onChange={handleInputChange}
+              placeholder="Enter product name"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3"
+            />
+
+            {suggestions.length > 0 && (
+              <ul className="absolute z-10 bg-white border border-gray-200 w-full rounded-lg mt-1 shadow-md max-h-48 overflow-y-auto">
+                {suggestions.map((item, index) => (
+                  <li
+                    key={index}
+                    onClick={() => {
+                      setProduct(item);
+                      setSuggestions([]);
+                    }}
+                    className="px-4 py-2 hover:bg-green-50 cursor-pointer"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div className="relative" ref={searchRef}>
-              <input
-                type="text"
-                value={product}
-                onChange={handleInputChange}
-                placeholder="Enter product name"
-                className="w-full border border-gray-300 rounded-lg px-4 py-3"
-              />
-
-              {suggestions.length > 0 && (
-                <ul className="absolute z-10 w-full border border-gray-300 rounded-lg bg-white max-h-48 overflow-y-auto shadow-md mt-1">
-                  {suggestions.map((item, index) => (
-                    <li
-                      key={index}
-                      onClick={() => {
-                        setProduct(item);
-                        setSuggestions([]);
-                      }}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    >
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
             <input
               type="text"
               value={quantity}
               onChange={handleQuantityChange}
-              placeholder="Amount (kg)"
+              placeholder="Quantity (kg)"
               className="w-full border border-gray-300 rounded-lg px-4 py-3"
             />
           </div>
@@ -645,6 +914,302 @@ function App() {
           )}
         </div>
 
+        <div className="mt-8 grid md:grid-cols-4 gap-4">
+          <div className="bg-white border border-green-200 rounded-xl p-4">
+            <p className="text-sm text-gray-500 mb-1">Top Friend</p>
+            <p className="text-lg font-semibold text-green-700">
+              {bestFriend ? bestFriend.name : "None yet"}
+            </p>
+          </div>
+
+          <div className="bg-white border border-blue-200 rounded-xl p-4">
+            <p className="text-sm text-gray-500 mb-1">Most Improved</p>
+            <p className="text-lg font-semibold text-blue-700">
+              {mostImprovedFriend ? mostImprovedFriend.name : "None yet"}
+            </p>
+          </div>
+
+          <div className="bg-white border border-purple-200 rounded-xl p-4">
+            <p className="text-sm text-gray-500 mb-1">Your Rank</p>
+            <p className="text-lg font-semibold text-purple-700">#{myRank}</p>
+          </div>
+
+          <div className="bg-white border border-yellow-200 rounded-xl p-4">
+            <p className="text-sm text-gray-500 mb-1">Friends Added</p>
+            <p className="text-lg font-semibold text-yellow-700">
+              {displayedLeaderboard.length}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-5 bg-purple-50 border border-purple-200 rounded-xl card mt-6">
+          <h3 className="text-lg font-semibold mb-3">🏆 Friends Leaderboard</h3>
+
+          <div ref={addFriendRef} className="mb-4 relative">
+            <input
+              type="text"
+              value={friendName}
+              onChange={handleFriendInputChange}
+              placeholder="Search existing user name"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3"
+            />
+
+            {friendSuggestions.length > 0 && (
+              <ul className="absolute z-10 bg-white border border-purple-100 w-full rounded-lg mt-1 shadow-md max-h-48 overflow-y-auto">
+                {friendSuggestions.map((user, index) => (
+                  <li
+                    key={`${user.name}-${index}`}
+                    onClick={() => addFriendByName(user.name)}
+                    className="px-4 py-2 hover:bg-purple-50 cursor-pointer flex justify-between"
+                  >
+                    <span>{user.name}</span>
+                    <span className="text-sm text-gray-500">
+                      {user.weekly_carbon.toFixed(1)} kg CO₂e
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <button
+            onClick={addFriend}
+            className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition font-semibold mb-3"
+          >
+            Add Friend
+          </button>
+
+          {friendFeedback && (
+            <div
+              className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
+                friendFeedbackType === "success"
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}
+            >
+              {friendFeedback}
+            </div>
+          )}
+
+          {addableSuggestedUsers.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-600 mb-2">Suggested users</p>
+              <div className="flex flex-wrap gap-2">
+                {addableSuggestedUsers.slice(0, 4).map((user) => (
+                  <button
+                    key={user.name}
+                    onClick={() => addFriendByName(user.name)}
+                    className="bg-white border border-purple-200 hover:bg-purple-100 rounded-full px-3 py-1 text-sm"
+                  >
+                    + {user.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {leaderboardError && customFriends.length === 0 && (
+            <p className="text-red-700">{leaderboardError}</p>
+          )}
+
+          {displayedLeaderboard.length === 0 && !leaderboardError && (
+            <p className="text-gray-600">Add friends to unlock the social leaderboard.</p>
+          )}
+
+          {displayedLeaderboard.length > 0 && (
+            <ul className="space-y-2">
+              {displayedLeaderboard.map((user, index) => (
+                <li
+                  key={`${user.name}-${index}`}
+                  onClick={() => setSelectedFriend(user)}
+                  className="flex justify-between items-center bg-white border border-purple-100 rounded-lg px-4 py-3 cursor-pointer hover:bg-purple-100 transition"
+                >
+                  <span className="flex items-center gap-2">
+                    <strong>{getRankBadge(index)} {index + 1}.</strong> {user.name}
+                  </span>
+                  <span>{user.weekly_carbon.toFixed(1)} kg CO₂e</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="mt-6 p-5 bg-white border border-purple-200 rounded-xl card">
+          <h3 className="text-xl font-semibold text-purple-700 mb-3">📢 Friends Activity Feed</h3>
+
+          {socialUpdates.length === 0 ? (
+            <p className="text-gray-600">Add friends to see social updates.</p>
+          ) : (
+            <div className="space-y-3">
+              {socialUpdates.map((update, index) => (
+                <div
+                  key={`${update.name}-${index}`}
+                  className="bg-purple-50 border border-purple-100 rounded-lg p-4"
+                >
+                  <p className="text-gray-800">{update.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6 p-5 bg-white border border-green-200 rounded-xl card">
+          <h3 className="text-xl font-semibold text-green-700 mb-3">📈 Weekly Comparison</h3>
+
+          {displayedLeaderboard.length === 0 ? (
+            <p className="text-gray-600">Add friends to compare this week versus last week.</p>
+          ) : (
+            <div className="space-y-4">
+              {mostImprovedFriend && (
+                <div className="p-4 bg-green-50 border border-green-100 rounded-lg">
+                  <p className="text-gray-800">
+                    <strong>Most Improved:</strong> {mostImprovedFriend.name} improved by{" "}
+                    {Math.abs(
+                      mostImprovedFriend.weekly_carbon - mostImprovedFriend.last_week_carbon
+                    ).toFixed(1)}{" "}
+                    kg CO₂e compared with last week.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {displayedLeaderboard.map((user, index) => {
+                  const difference = Number(
+                    (user.weekly_carbon - user.last_week_carbon).toFixed(1)
+                  );
+
+                  return (
+                    <div
+                      key={`${user.name}-comparison-${index}`}
+                      className="bg-gray-50 border border-gray-200 rounded-lg p-4"
+                    >
+                      <div className="flex justify-between items-start gap-4">
+                        <div>
+                          <p className="font-semibold text-gray-900">{user.name}</p>
+                          <p className="text-sm text-gray-700">
+                            This week: {user.weekly_carbon.toFixed(1)} kg CO₂e
+                          </p>
+                          <p className="text-sm text-gray-700">
+                            Last week: {user.last_week_carbon.toFixed(1)} kg CO₂e
+                          </p>
+                        </div>
+
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getTrendColor(
+                            user.weekly_carbon,
+                            user.last_week_carbon
+                          )}`}
+                        >
+                          {getTrendLabel(user.weekly_carbon, user.last_week_carbon)}
+                        </span>
+                      </div>
+
+                      <p className="text-sm text-gray-700 mt-2">
+                        Weekly change: {difference > 0 ? "+" : ""}
+                        {difference.toFixed(1)} kg CO₂e
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {selectedFriend && (
+          <div className="mt-6 p-5 bg-white border border-purple-200 rounded-xl card">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-xl font-semibold text-purple-700">👤 Friend Profile</h3>
+                <p className="text-gray-600">Social snapshot for {selectedFriend.name}</p>
+              </div>
+
+              <button
+                onClick={() => setSelectedFriend(null)}
+                className="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg text-sm font-medium"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-3 mb-4">
+              <div className="bg-purple-50 border border-purple-100 rounded-lg p-4">
+                <p className="text-sm text-gray-500 mb-1">Weekly Score</p>
+                <p className="font-semibold text-purple-700">
+                  {selectedFriend.weekly_carbon.toFixed(1)} kg CO₂e
+                </p>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                <p className="text-sm text-gray-500 mb-1">Activities Logged</p>
+                <p className="font-semibold text-blue-700">
+                  {selectedFriend.activities_logged}
+                </p>
+              </div>
+
+              <div className="bg-green-50 border border-green-100 rounded-lg p-4">
+                <p className="text-sm text-gray-500 mb-1">Trend</p>
+                <span
+                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getTrendColor(
+                    selectedFriend.weekly_carbon,
+                    selectedFriend.last_week_carbon
+                  )}`}
+                >
+                  {getTrendLabel(selectedFriend.weekly_carbon, selectedFriend.last_week_carbon)}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-gray-800">
+              <p>
+                <strong>Name:</strong> {selectedFriend.name}
+              </p>
+              <p>
+                <strong>Impact Level:</strong> {getFriendImpactLevel(selectedFriend.weekly_carbon)}
+              </p>
+              <p>
+                <strong>Last Week:</strong> {selectedFriend.last_week_carbon.toFixed(1)} kg CO₂e
+              </p>
+              <p>
+                <strong>Weekly Change:</strong>{" "}
+                {(selectedFriend.weekly_carbon - selectedFriend.last_week_carbon).toFixed(1)} kg CO₂e
+              </p>
+              <p>
+                <strong>Best Category:</strong> {selectedFriend.best_category}
+              </p>
+              <p>
+                <strong>Biggest Source:</strong> {selectedFriend.biggest_source}
+              </p>
+              <p>
+                <strong>Recent Update:</strong> {selectedFriend.recent_update}
+              </p>
+            </div>
+
+            <div className="mt-5 p-4 bg-green-50 border border-green-100 rounded-lg">
+              <h4 className="text-lg font-semibold text-green-700 mb-2">⚖ Compare Me vs Friend</h4>
+              <p className="text-gray-800">
+                <strong>You:</strong> {myWeeklyCarbon.toFixed(1)} kg CO₂e
+              </p>
+              <p className="text-gray-800">
+                <strong>{selectedFriend.name}:</strong> {selectedFriend.weekly_carbon.toFixed(1)} kg CO₂e
+              </p>
+              <p className="text-gray-800 mt-2">
+                {compareDifference < 0
+                  ? `You are ${Math.abs(compareDifference).toFixed(1)} kg CO₂e lower than ${selectedFriend.name} this week.`
+                  : compareDifference > 0
+                  ? `You are ${compareDifference.toFixed(1)} kg CO₂e higher than ${selectedFriend.name} this week.`
+                  : `You and ${selectedFriend.name} have the same weekly score right now.`}
+              </p>
+            </div>
+
+            <div className="mt-4 p-4 bg-purple-50 border border-purple-100 rounded-lg">
+              <p className="text-sm text-gray-700">
+                Detailed product activity remains private. Only summary social stats are shown.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="mt-10 p-5 bg-green-50 border border-green-200 rounded-xl card">
           <h2 className="text-xl font-semibold mb-3">📊 Dashboard Summary</h2>
           <p className="mb-2">
@@ -655,6 +1220,9 @@ function App() {
           </p>
           <p className="mb-2">
             <strong>Overall Impact Level:</strong> {impactLevel}
+          </p>
+          <p className="mb-2">
+            <strong>Last Week Estimate:</strong> {myLastWeekCarbon.toFixed(1)} kg CO₂e
           </p>
 
           <div className="mt-4">
