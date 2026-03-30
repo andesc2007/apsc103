@@ -12,11 +12,7 @@ function App() {
   const [energyAmount, setEnergyAmount] = React.useState("");
   const [energyResult, setEnergyResult] = React.useState(null);
 
-  const [totalCarbon, setTotalCarbon] = React.useState(0);
-  const [activityCount, setActivityCount] = React.useState(0);
-
-  const searchRef = React.useRef(null);
-  const addFriendRef = React.useRef(null);
+  const [activities, setActivities] = React.useState([]);
 
   const [leaderboard, setLeaderboard] = React.useState([]);
   const [leaderboardError, setLeaderboardError] = React.useState("");
@@ -27,6 +23,9 @@ function App() {
   const [friendFeedbackType, setFriendFeedbackType] = React.useState("");
   const [customFriends, setCustomFriends] = React.useState([]);
   const [selectedFriend, setSelectedFriend] = React.useState(null);
+
+  const searchRef = React.useRef(null);
+  const addFriendRef = React.useRef(null);
 
   const mockUsers = [
     {
@@ -84,6 +83,47 @@ function App() {
       biggest_source: "Food"
     }
   ];
+
+  const energyUnits = {
+    electricity: "kWh",
+    natural_gas: "m³",
+    heating_oil: "L",
+    propane: "L"
+  };
+
+  const totalCarbon = activities.reduce((sum, activity) => sum + activity.carbon, 0);
+  const activityCount = activities.length;
+
+  const impactLevel =
+    totalCarbon > 40
+      ? "High Impact"
+      : totalCarbon > 20
+      ? "Moderate Impact"
+      : "Low Impact";
+
+  const myWeeklyCarbon = Number(totalCarbon.toFixed(1));
+  const myLastWeekCarbon = Number((totalCarbon + 2.4).toFixed(1));
+
+  React.useEffect(() => {
+    const savedActivities = localStorage.getItem("activities");
+    const savedCustomFriends = localStorage.getItem("customFriends");
+
+    if (savedActivities) {
+      setActivities(JSON.parse(savedActivities));
+    }
+
+    if (savedCustomFriends) {
+      setCustomFriends(JSON.parse(savedCustomFriends));
+    }
+  }, []);
+
+  React.useEffect(() => {
+    localStorage.setItem("activities", JSON.stringify(activities));
+  }, [activities]);
+
+  React.useEffect(() => {
+    localStorage.setItem("customFriends", JSON.stringify(customFriends));
+  }, [customFriends]);
 
   React.useEffect(() => {
     function handleClickOutside(event) {
@@ -143,15 +183,26 @@ function App() {
     loadLeaderboard();
   }, []);
 
-  const impactLevel =
-    totalCarbon > 40
-      ? "High Impact"
-      : totalCarbon > 20
-      ? "Moderate Impact"
-      : "Low Impact";
+  function addActivity(entry) {
+    const newActivity = {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      ...entry
+    };
 
-  const myWeeklyCarbon = Number(totalCarbon.toFixed(1));
-  const myLastWeekCarbon = Number((totalCarbon + 2.4).toFixed(1));
+    setActivities((prev) => [newActivity, ...prev]);
+  }
+
+  function deleteActivity(id) {
+    setActivities((prev) => prev.filter((activity) => activity.id !== id));
+  }
+
+  function clearAllActivities() {
+    setActivities([]);
+    setResult(null);
+    setTransportResult(null);
+    setEnergyResult(null);
+  }
 
   function getSuggestion(productName) {
     const p = productName.toLowerCase();
@@ -247,13 +298,33 @@ function App() {
   }
 
   function getOverallRecommendation() {
-    if (totalCarbon > 50) {
-      return "Your current footprint is high. Focus on reducing major contributors such as car travel, flights, and high-impact food choices.";
+    if (activities.length === 0) {
+      return "Log an activity to begin tracking your carbon footprint.";
     }
-    if (totalCarbon > 20) {
-      return "Your footprint is moderate. Small improvements in food, transport, or home energy could make a meaningful difference.";
+
+    const categoryTotals = activities.reduce(
+      (acc, activity) => {
+        acc[activity.type] = (acc[activity.type] || 0) + activity.carbon;
+        return acc;
+      },
+      { product: 0, transport: 0, energy: 0 }
+    );
+
+    const biggestSource = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+    if (biggestSource === "transport") {
+      return "Transportation is currently your largest source. Reducing car travel or replacing flights with rail where possible would have the greatest impact.";
     }
-    return "Your current footprint is relatively low. Continue maintaining lower-impact habits and monitoring your activities.";
+
+    if (biggestSource === "product") {
+      return "Product purchases are currently your largest source. Lower-carbon food substitutions would reduce your footprint most effectively.";
+    }
+
+    if (biggestSource === "energy") {
+      return "Household energy is currently your largest source. Reducing heating demand and electricity use would provide the greatest benefit.";
+    }
+
+    return "Your footprint is relatively balanced across categories. Small improvements in each area would reduce it further.";
   }
 
   function getFriendImpactLevel(carbon) {
@@ -434,8 +505,14 @@ function App() {
         savings: alternativeInfo.savings
       });
 
-      setTotalCarbon((prev) => prev + data.total_carbon);
-      setActivityCount((prev) => prev + 1);
+      addActivity({
+        type: "product",
+        label: data.product,
+        amount: data.amount,
+        unit: "kg",
+        carbon: data.total_carbon
+      });
+
       setSuggestions([]);
     } catch (error) {
       setResult({
@@ -502,8 +579,13 @@ function App() {
       suggestion
     });
 
-    setTotalCarbon((prev) => prev + totalTransportCarbon);
-    setActivityCount((prev) => prev + 1);
+    addActivity({
+      type: "transport",
+      label: transportMode,
+      amount: distance,
+      unit: "km",
+      carbon: totalTransportCarbon
+    });
   }
 
   function calculateEnergy() {
@@ -521,13 +603,6 @@ function App() {
       natural_gas: 1.89,
       heating_oil: 2.68,
       propane: 1.51
-    };
-
-    const units = {
-      electricity: "kWh",
-      natural_gas: "m³",
-      heating_oil: "L",
-      propane: "L"
     };
 
     const factor = emissionFactors[energyType];
@@ -567,7 +642,7 @@ function App() {
     setEnergyResult({
       type: energyType,
       amount,
-      unit: units[energyType],
+      unit: energyUnits[energyType],
       carbon: totalEnergyCarbon,
       impact,
       impactColor,
@@ -575,8 +650,13 @@ function App() {
       suggestion
     });
 
-    setTotalCarbon((prev) => prev + totalEnergyCarbon);
-    setActivityCount((prev) => prev + 1);
+    addActivity({
+      type: "energy",
+      label: energyType.replace("_", " "),
+      amount,
+      unit: energyUnits[energyType],
+      carbon: totalEnergyCarbon
+    });
   }
 
   function handleQuantityChange(e) {
@@ -686,7 +766,7 @@ function App() {
         <div className="p-5 bg-white border rounded-xl card">
           <h2 className="text-xl font-semibold mb-4">🍽 Product Carbon Footprint</h2>
 
-          <div ref={searchRef} className="grid md:grid-cols-2 gap-4 mb-4">
+          <div ref={searchRef} className="mb-4 relative">
             <input
               type="text"
               value={product}
@@ -711,7 +791,9 @@ function App() {
                 ))}
               </ul>
             )}
+          </div>
 
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
             <input
               type="text"
               value={quantity}
@@ -800,8 +882,13 @@ function App() {
               type="text"
               value={transportDistance}
               onChange={handleTransportDistanceChange}
-              placeholder="Distance (km)"
-              className="w-full border border-gray-300 rounded-lg px-4 py-3"
+              placeholder={transportMode ? "Distance (km)" : "Select transport mode first"}
+              disabled={!transportMode}
+              className={`w-full border rounded-lg px-4 py-3 ${
+                transportMode
+                  ? "border-gray-300 bg-white"
+                  : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
             />
           </div>
 
@@ -850,39 +937,50 @@ function App() {
           <h2 className="text-xl font-semibold mb-4">🏠 Household Energy Emissions</h2>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <select
-              value={energyType}
-              onChange={(e) => setEnergyType(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3"
-            >
-              <option value="">Select energy source</option>
-              <option value="electricity">Electricity</option>
-              <option value="natural_gas">Natural Gas</option>
-              <option value="heating_oil">Heating Oil</option>
-              <option value="propane">Propane</option>
-            </select>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-  {energyType
-    ? `Usage Amount (${energyUnits[energyType]})`
-    : "Usage Amount"}
-</label>
+            <div>
+              <select
+                value={energyType}
+                onChange={(e) => setEnergyType(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3"
+              >
+                <option value="">Select energy source</option>
+                <option value="electricity">Electricity</option>
+                <option value="natural_gas">Natural Gas</option>
+                <option value="heating_oil">Heating Oil</option>
+                <option value="propane">Propane</option>
+              </select>
+            </div>
 
-            <input
-              type="text"
-              value={energyAmount}
-              onChange={handleEnergyAmountChange}
-              placeholder={
-                energyType
-                ? `Usage amount (${energyUnits[energyType]})`
-                : "Usage amount"
-              }
-              className="w-full border border-gray-300 rounded-lg px-4 py-3"
-            />
-            {energyType && (
-  <p className="text-sm text-gray-500 mt-1">
-    Unit: {energyUnits[energyType]}
-  </p>
-)}
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                {energyType
+                  ? `Usage Amount (${energyUnits[energyType]})`
+                  : "Usage Amount"}
+              </label>
+
+              <input
+                type="text"
+                value={energyAmount}
+                onChange={handleEnergyAmountChange}
+                placeholder={
+                  energyType
+                    ? `Usage amount (${energyUnits[energyType]})`
+                    : "Select energy source first"
+                }
+                disabled={!energyType}
+                className={`w-full border rounded-lg px-4 py-3 ${
+                  energyType
+                    ? "border-gray-300 bg-white"
+                    : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                }`}
+              />
+
+              {energyType && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Unit: {energyUnits[energyType]}
+                </p>
+              )}
+            </div>
           </div>
 
           <button
@@ -922,6 +1020,56 @@ function App() {
                 <h4 className="text-lg font-semibold mb-2">💡 Suggestion</h4>
                 <p className="text-gray-700">{energyResult.suggestion}</p>
               </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8 p-5 bg-white border rounded-xl card">
+          <div className="flex justify-between items-center mb-4 gap-4 flex-wrap">
+            <h2 className="text-xl font-semibold">📝 Recent Activity Log</h2>
+
+            {activities.length > 0 && (
+              <button
+                onClick={clearAllActivities}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-medium"
+              >
+                Clear All Activities
+              </button>
+            )}
+          </div>
+
+          {activities.length === 0 ? (
+            <p className="text-gray-600">No activities logged yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {activities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-start gap-4"
+                >
+                  <div>
+                    <p className="font-semibold text-gray-900 capitalize">
+                      {activity.type}: {activity.label}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      Amount: {activity.amount} {activity.unit}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      Carbon Footprint: {activity.carbon.toFixed(2)} kg CO₂e
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Logged: {new Date(activity.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => deleteActivity(activity.id)}
+                    className="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-lg text-sm font-medium"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
