@@ -861,14 +861,28 @@ function App() {
               <option value="heating_oil">Heating Oil</option>
               <option value="propane">Propane</option>
             </select>
+            <label className="block text-sm font-medium text-gray-600 mb-1">
+  {energyType
+    ? `Usage Amount (${energyUnits[energyType]})`
+    : "Usage Amount"}
+</label>
 
             <input
               type="text"
               value={energyAmount}
               onChange={handleEnergyAmountChange}
-              placeholder="Usage amount"
+              placeholder={
+                energyType
+                ? `Usage amount (${energyUnits[energyType]})`
+                : "Usage amount"
+              }
               className="w-full border border-gray-300 rounded-lg px-4 py-3"
             />
+            {energyType && (
+  <p className="text-sm text-gray-500 mt-1">
+    Unit: {energyUnits[energyType]}
+  </p>
+)}
           </div>
 
           <button
