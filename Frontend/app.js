@@ -686,7 +686,7 @@ function App() {
         <div className="p-5 bg-white border rounded-xl card">
           <h2 className="text-xl font-semibold mb-4">🍽 Product Carbon Footprint</h2>
 
-          <div ref={searchRef} className="mb-4 relative">
+          <div ref={searchRef} className="grid md:grid-cols-2 gap-4 mb-4">
             <input
               type="text"
               value={product}
@@ -711,9 +711,7 @@ function App() {
                 ))}
               </ul>
             )}
-          </div>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
             <input
               type="text"
               value={quantity}
