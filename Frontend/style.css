@@ -11,6 +11,15 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
 }
 
+input:disabled,
+select:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+  box-shadow: none;
+}
+
 button {
   transition: all 0.2s ease;
 }
