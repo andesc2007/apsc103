@@ -766,34 +766,37 @@ function App() {
         <div className="p-5 bg-white border rounded-xl card">
           <h2 className="text-xl font-semibold mb-4">🍽 Product Carbon Footprint</h2>
 
-          <div ref={searchRef} className="mb-4 relative">
-            <input
-              type="text"
-              value={product}
-              onChange={handleInputChange}
-              placeholder="Enter product name"
-              className="w-full border border-gray-300 rounded-lg px-4 py-3"
-            />
-
-            {suggestions.length > 0 && (
-              <ul className="absolute z-10 bg-white border border-gray-200 w-full rounded-lg mt-1 shadow-md max-h-48 overflow-y-auto">
-                {suggestions.map((item, index) => (
-                  <li
-                    key={index}
-                    onClick={() => {
-                      setProduct(item);
-                      setSuggestions([]);
-                    }}
-                    className="px-4 py-2 hover:bg-green-50 cursor-pointer"
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
           <div className="grid md:grid-cols-2 gap-4 mb-4">
+            
+            {/* LEFT: Product search */}
+            <div ref={searchRef} className="relative">
+              <input
+                type="text"
+                value={product}
+                onChange={handleInputChange}
+                placeholder="Enter product name"
+                className="w-full border border-gray-300 rounded-lg px-4 py-3"
+              />
+
+              {suggestions.length > 0 && (
+                <ul className="absolute z-10 bg-white border border-gray-200 w-full rounded-lg mt-1 shadow-md max-h-48 overflow-y-auto">
+                  {suggestions.map((item, index) => (
+                    <li
+                      key={index}
+                      onClick={() => {
+                        setProduct(item);
+                        setSuggestions([]);
+                      }}
+                      className="px-4 py-2 hover:bg-green-50 cursor-pointer"
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* RIGHT: Quantity */}
             <input
               type="text"
               value={quantity}
@@ -801,6 +804,7 @@ function App() {
               placeholder="Quantity (kg)"
               className="w-full border border-gray-300 rounded-lg px-4 py-3"
             />
+
           </div>
 
           <button
@@ -952,11 +956,6 @@ function App() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                {energyType
-                  ? `Usage Amount (${energyUnits[energyType]})`
-                  : "Usage Amount"}
-              </label>
 
               <input
                 type="text"
@@ -975,11 +974,6 @@ function App() {
                 }`}
               />
 
-              {energyType && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Unit: {energyUnits[energyType]}
-                </p>
-              )}
             </div>
           </div>
 
