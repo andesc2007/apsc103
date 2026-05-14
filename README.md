@@ -1,6 +1,6 @@
 This is a carbon footprint tracker application. 
 It is for my Queens University APSC 103 Engineering Design Project course.
-I am working on this application in collaboration with three other group members,
+I worked on this application in collaboration with three other group members,
 a project manager, and a faculty advisor.
 It takes the users shopping choices and returns their carbon footprint.
 Furthermore, the application also returns suggestions to improve the carbon footprint
