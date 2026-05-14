@@ -7,7 +7,6 @@ Furthermore, the application also returns suggestions to improve the carbon foot
 and alternative shopping choices that use less carbon footprint.
 The application also has social features, such as the ability to add friends.
 With these friends, you can compare stats, somewhat like a game.
-The project is in early development. It will be done by the end of April 2026.
 
 For APSC 103 Team Members:
 
